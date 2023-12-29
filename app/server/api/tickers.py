@@ -16,7 +16,6 @@ async def get_ticker(
     tickers_service: TickerService = Depends(ticker_service),
     symbol: str = None
 ):
-    print("NOT CACHED")
     if symbol == None:
         return await tickers_service.get_all_tickers()
 
