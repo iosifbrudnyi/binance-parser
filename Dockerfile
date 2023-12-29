@@ -13,6 +13,4 @@ COPY app .
 COPY .env .
 COPY run-backend.sh run-backend.sh
 COPY run-parser.sh run-parser.sh
-COPY wait-for-postgres.sh wait-for-postgres.sh
-RUN chmod +x run-backend.sh run-parser.sh wait-for-postgres.sh
-CMD [ "./wait-for-postgres" ] 
+RUN chmod +x run-backend.sh run-parser.sh 
