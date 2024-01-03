@@ -1,38 +1,36 @@
 import asyncio
-import logging
-from aiohttp import ClientSession
-from binance_parser.db import insert_or_update_data
-from server.db.db import database
-from config import BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT
+import json
+import pickle
+import uuid
+from server.schemas.tikcers import TickerResponse
+import websockets
+import redis
 
-TICKER_URL = "ticker/price"
+class BinanceParser:
+    def __init__(self, url: str, timeout: int, redis_db: redis.Redis):
+        self.url: str = url
+        self.timeout: int = timeout
+        self.redis_db: redis.Redis = redis_db
 
+    def save_to_redis(self, response: TickerResponse):
+        d = {}
+        for r in response["result"]:
+            d[r["symbol"]] = r["price"]
+        
+        d = pickle.dumps(d)
 
-async def fetch_ticker(session):
-    async with session.get(BINANCE_API_URL + TICKER_URL) as response:
-        return await response.json()
+        self.redis_db.set("tickers", d)
 
+    async def listen(self):
+        async with websockets.connect(self.url) as websocket:
+            while True:
+                sub_request = {
+                    "method": "ticker.price",
+                    "id": str(uuid.uuid4())
+                }
+                await websocket.send(json.dumps(sub_request))
+                resposne = json.loads(await websocket.recv())
 
-async def listen():
-    await database.connect()
-    session = ClientSession()
+                self.save_to_redis(resposne)
 
-    try:
-        while True:
-            try:
-                data = await fetch_ticker(session)
-                logging.info(data)
-
-                for ticker in data:
-                    await insert_or_update_data(database, {"symbol": ticker["symbol"], "price": ticker["price"]})
-
-                await asyncio.sleep(BINANCE_LISTEN_TIMEOUT)
-            except Exception as e:
-                logging.exception(e)
-    finally:
-        await session.close()
-        await database.disconnect()
-
-
-if __name__ == "__main__":
-    asyncio.run(listen())
+                await asyncio.sleep(self.timeout)

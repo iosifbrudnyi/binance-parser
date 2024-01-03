@@ -1,21 +1,22 @@
-
-
-from databases import Database
-
+import pickle
+import aioredis
+import redis
 
 class TickerService:
-    def __init__(self, db):
-        self.db: Database = db
+    def __init__(self, redis_db):
+        self.redis_db: redis.Redis = redis_db
 
-    async def get_ticker(self, symbol):
-        query = "SELECT * FROM tickers WHERE symbol = :symbol;"
-        values = {"symbol": symbol}
-        ticker = await self.db.fetch_one(query=query, values=values)
-        return ticker
+    async def get_ticker(self, symbol: str):
+        tickers: dict = pickle.loads(self.redis_db.get("tickers"))
+        
+        price = tickers.get(symbol)
+        if not price:
+            return None
+
+        return {"symbol": symbol, "price": price}
     
-    async def get_all_tickers(self):
-        query = "SELECT * FROM tickers"
-        tickers = await self.db.fetch_all(query=query)
+    def get_all_tickers(self):
+        tickers: dict = pickle.loads(self.redis_db.get("tickers"))
         return tickers
     
 
