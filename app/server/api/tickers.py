@@ -19,7 +19,7 @@ async def get_ticker(
 ) -> Union[TickerGet,  List[TickerGet]]:
 
     if symbol == None:
-        return ticker_service.get_all_tickers()
+        return await ticker_service.get_all_tickers()
 
     data = await ticker_service.get_ticker(symbol)
 

@@ -2,8 +2,7 @@
 
 import aioredis
 from config import REDIS_URL
-import redis
 
 
-async def get_redis() -> redis.Redis:
-    return redis.Redis().from_url(REDIS_URL)
+async def get_redis() -> aioredis.Redis:
+    return await aioredis.Redis().from_url(REDIS_URL)
