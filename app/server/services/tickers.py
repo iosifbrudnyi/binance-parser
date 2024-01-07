@@ -3,8 +3,8 @@ import aioredis
 import redis
 
 class TickerService:
-    def __init__(self, redis_db):
-        self.redis_db: redis.Redis = redis_db
+    def __init__(self, redis_db: redis.Redis ):
+        self.redis_db = redis_db
 
     async def get_ticker(self, symbol: str):
         tickers: dict = pickle.loads(self.redis_db.get("tickers"))

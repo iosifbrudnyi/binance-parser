@@ -17,7 +17,6 @@ async def lifespan(app: FastAPI):
 
     binance_parser = BinanceParser(BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT, redis)
     asyncio.create_task(binance_parser.listen())
-    app.state.redis = redis
 
     yield
 
