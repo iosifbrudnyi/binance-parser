@@ -39,5 +39,6 @@ class BinanceParser:
 
                 data = self.transform_response(response)
                 await self.save_to_db(data)
+                await self.save_to_redis(data)
 
                 await asyncio.sleep(self.timeout)
