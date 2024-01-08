@@ -1,25 +1,31 @@
 import asyncio
 import json
 import pickle
+from typing import List
 import uuid
-import aioredis
-from server.schemas.tikcers import TickerResponse
+from schemas.tickers import TickerBase, TickerResponse
+from services.tickers import TickerService
 import websockets
 
 class BinanceParser:
-    def __init__(self, url: str, timeout: int, redis_db: aioredis.Redis):
+    def __init__(self, url: str, timeout: int):
         self.url = url
         self.timeout = timeout
-        self.redis_db = redis_db
+        self.ticker_service: TickerService = TickerService()
 
-    async def save_to_redis(self, response: TickerResponse):
-        d = {}
+    def transform_response(self, response: TickerResponse) -> List[TickerBase]:
+        data = []
         for r in response["result"]:
-            d[r["symbol"]] = r["price"]
-        
-        d = pickle.dumps(d)
+            data.append({r["symbol"]: r["price"]})
 
-        await self.redis_db.set("tickers", d)
+        return data
+
+    async def save_to_db(self, data: List[TickerBase]):
+        for ticker in data:
+            await self.ticker_service.save_db(ticker)
+
+    async def save_to_redis(self, data: List[TickerBase]):
+        await self.ticker_service.save_redis(data)
 
     async def listen(self):
         async with websockets.connect(self.url) as websocket:
@@ -29,8 +35,9 @@ class BinanceParser:
                     "id": str(uuid.uuid4())
                 }
                 await websocket.send(json.dumps(sub_request))
-                resposne = json.loads(await websocket.recv())
+                response: TickerResponse = json.loads(await websocket.recv())
 
-                await self.save_to_redis(resposne)
+                data = self.transform_response(response)
+                await self.save_to_db(data)
 
                 await asyncio.sleep(self.timeout)

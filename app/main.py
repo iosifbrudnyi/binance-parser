@@ -1,21 +1,20 @@
 import asyncio
 from contextlib import asynccontextmanager
 from binance_parser.main import BinanceParser
+from db.redis import get_redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from server.db.redis import get_redis
 import uvicorn
-from fastapi import Depends, FastAPI
-from config import BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT
-from server.api.tickers import router as ticker_router
+from fastapi import FastAPI
+from config import APP_HOST, APP_PORT, BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT
+from api.tickers import router as ticker_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis = await get_redis()
 
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache") 
-
-    binance_parser = BinanceParser(BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT, redis)
+    binance_parser = BinanceParser(BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT)
     asyncio.create_task(binance_parser.listen())
 
     yield
@@ -23,16 +22,13 @@ async def lifespan(app: FastAPI):
     await redis.close()
 
 
+
+
 app = FastAPI(lifespan=lifespan)
 app.include_router(ticker_router, prefix="/api")
 
-@app.get("/")
-async def root():
-    return {"success": "true"}
-
-
 def main():
-    uvicorn.run(app="server.main:app", reload=True, host="0.0.0.0", port=8000)
+    uvicorn.run(app="main:app", reload=True, host=APP_HOST, port=APP_PORT)
 
 if __name__ == "__main__":
     main()

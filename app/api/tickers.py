@@ -1,9 +1,8 @@
 from typing import List, Union
 from fastapi import APIRouter, Depends, HTTPException
-from server.api.dependecies import ticker_service
-from server.schemas.tikcers import TickerGet
+from schemas.tickers import TickerBase
 from config import CACHE_EXPIRE
-from server.services.tickers import TickerService
+from services.tickers import TickerService
 from fastapi_cache.decorator import cache
 
 router = APIRouter(
@@ -14,9 +13,9 @@ router = APIRouter(
 @router.get("", response_model=dict)
 @cache(expire=CACHE_EXPIRE)
 async def get_ticker(
-    ticker_service: TickerService = Depends(ticker_service),
+    ticker_service: TickerService = Depends(TickerService),
     symbol: str = None
-) -> Union[TickerGet,  List[TickerGet]]:
+) -> Union[TickerBase,  List[TickerBase]]:
 
     if symbol == None:
         return await ticker_service.get_all_tickers()
