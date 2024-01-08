@@ -1,10 +1,12 @@
 import asyncio
 import json
+import logging
 import pickle
 from typing import List
 import uuid
 import aioredis
 from databases import Database
+from exceptions.base import BinanceParserException
 from schemas.tickers import TickerBase, TickerResponse
 from services.tickers import TickerService
 import websockets
@@ -16,11 +18,7 @@ class BinanceParser:
         self.ticker_service: TickerService = TickerService(db=db, redis_db=redis_db)
 
     def transform_response(self, response: TickerResponse) -> List[TickerBase]:
-        data = []
-        for r in response["result"]:
-            data.append({r["symbol"]: r["price"]})
-
-        return data
+        return [ticker for ticker in response["result"]]
 
     async def save_to_db(self, data: List[TickerBase]):
         for ticker in data:
@@ -36,8 +34,12 @@ class BinanceParser:
                     "method": "ticker.price",
                     "id": str(uuid.uuid4())
                 }
-                await websocket.send(json.dumps(sub_request))
-                response: TickerResponse = json.loads(await websocket.recv())
+
+                try:
+                    await websocket.send(json.dumps(sub_request))                
+                    response: TickerResponse = json.loads(await websocket.recv())
+                except Exception as e:
+                    BinanceParserException(e)
 
                 data = self.transform_response(response)
                 await self.save_to_db(data)

@@ -1,4 +1,5 @@
 from typing import List, Union
+from exceptions.base import NotFound
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.tickers import TickerBase
 from config import CACHE_EXPIRE
@@ -23,7 +24,7 @@ async def get_ticker(
     data = await ticker_service.get_ticker(symbol)
 
     if data == None:
-        raise HTTPException(status_code=404, detail="Not found!")
+        raise NotFound()
     
     return await ticker_service.get_ticker(symbol)
     

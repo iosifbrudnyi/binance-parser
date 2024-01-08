@@ -2,10 +2,10 @@ services:
   db:
     container_name: db
     image: postgres:latest
-    ports:
-      - 5433:5432
     env_file:
       - .env
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
     healthcheck:
       test: pg_isready -U ${POSTGRES_USER} -d db
       interval: 3s
@@ -16,23 +16,25 @@ services:
     container_name: redis
     image: redis:latest
     restart: always
+    env_file:
+      - .env
     ports:
-      - 5370:6379
+      - ${REDIS_PORT}:${REDIS_PORT}
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
       interval: 1s
       timeout: 3s
       retries: 5
  
-  # backend:
-  #   container_name: backend
-  #   build: 
-  #     context: .
-  #   ports:
-  #     - 8000:8000
-  #   entrypoint: poetry run backend
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
+  backend:
+    container_name: backend
+    build: 
+      context: .
+    env_file:
+    - .env
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    entrypoint: poetry run backend
+    depends_on:
+      redis:
+        condition: service_healthy
