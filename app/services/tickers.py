@@ -43,7 +43,7 @@ class TickerService:
         await self.redis_db.set("tickers", pickle.dumps(tickers))
 
     async def get_ticker_redis(self, symbol: str) -> TickerBase:
-        tickers: dict = pickle.loads(await self.redis_db.get("tickers"))
+        tickers: List[TickerBase] = pickle.loads(await self.redis_db.get("tickers"))
         
         price = tickers.get(symbol)
         
@@ -52,12 +52,14 @@ class TickerService:
 
         return TickerBase(symbol=symbol, price=price)
     
+    async def get_all_tickers_redis(self: str) -> List[TickerBase]:
         tickers: List[TickerBase] = pickle.loads(await self.redis_db.get("tickers"))
+
         if not tickers:
             raise Exception("TICKERS NOT FOUND")
         
         return tickers
-    
+
     async def get_ticker(self, symbol: str):
         try: 
             return await self.get_ticker_redis(symbol)
