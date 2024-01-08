@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from binance_parser.main import BinanceParser
+from db.db import get_db
 from db.redis import get_redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -12,9 +13,10 @@ from api.tickers import router as ticker_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis = await get_redis()
+    db = await get_db()
 
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache") 
-    binance_parser = BinanceParser(BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT)
+    binance_parser = BinanceParser(BINANCE_API_URL, BINANCE_LISTEN_TIMEOUT, db, redis)
     asyncio.create_task(binance_parser.listen())
 
     yield

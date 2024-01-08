@@ -106,6 +106,7 @@ pypi = "^2.1"
 psycopg2 = "^2.9.9"
 websockets = "^12.0"
 pickle-mixin = "^1.0.2"
+yoyo-migrations = "^8.2.0"
 
 
 [build-system]

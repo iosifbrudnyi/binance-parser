@@ -3,15 +3,17 @@ import json
 import pickle
 from typing import List
 import uuid
+import aioredis
+from databases import Database
 from schemas.tickers import TickerBase, TickerResponse
 from services.tickers import TickerService
 import websockets
 
 class BinanceParser:
-    def __init__(self, url: str, timeout: int):
+    def __init__(self, url: str, timeout: int, db: Database, redis_db: aioredis.Redis):
         self.url = url
         self.timeout = timeout
-        self.ticker_service: TickerService = TickerService()
+        self.ticker_service: TickerService = TickerService(db=db, redis_db=redis_db)
 
     def transform_response(self, response: TickerResponse) -> List[TickerBase]:
         data = []

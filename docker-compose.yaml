@@ -24,15 +24,15 @@ services:
       timeout: 3s
       retries: 5
  
-  backend:
-    container_name: backend
-    build: 
-      context: .
-    ports:
-      - 8000:8000
-    entrypoint: poetry run backend
-    env_file:
-      - .env
-    depends_on:
-      redis:
-        condition: service_healthy
+  # backend:
+  #   container_name: backend
+  #   build: 
+  #     context: .
+  #   ports:
+  #     - 8000:8000
+  #   entrypoint: poetry run backend
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy

@@ -21,7 +21,12 @@ class TickerService:
             UPDATE
             SET price=(:price);
         '''
-        await self.db.execute(query=query, values=ticker)
+        converted = {}
+        for k, v in ticker.items():
+            converted["symbol"] = k
+            converted["price"]  = v
+
+        await self.db.execute(query=query, values=converted)
 
     async def get_ticker_db(self, symbol: str):
         query = '''
