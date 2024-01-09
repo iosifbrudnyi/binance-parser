@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     ports:
-      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+      - 5433:${POSTGRES_PORT}
     healthcheck:
       test: pg_isready -U ${POSTGRES_USER} -d db
       interval: 3s
@@ -19,7 +19,7 @@ services:
     env_file:
       - .env
     ports:
-      - ${REDIS_PORT}:${REDIS_PORT}
+      - 6333:${REDIS_PORT}
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
       interval: 1s
@@ -34,7 +34,9 @@ services:
     - .env
     ports:
       - ${APP_PORT}:${APP_PORT}
-    entrypoint: poetry run yoyo apply -b migrations && poetry run backend
+    entrypoint: ["/bin/sh", "-c", "poetry run yoyo apply -b migrations && poetry run backend"]
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
