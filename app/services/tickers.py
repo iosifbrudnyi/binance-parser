@@ -11,7 +11,7 @@ from db.redis import get_redis
 from schemas.tickers import TickerBase
 
 class TickerService:
-    def __init__(self, db: Database = Depends(get_db), redis_db: aioredis.Redis = Depends(get_redis) ):
+    def __init__(self, db: Database, redis_db: aioredis.Redis):
         self.db = db
         self.redis_db = redis_db
 
@@ -30,7 +30,7 @@ class TickerService:
         except Exception as e:
             TickerServiceException(e)
 
-    async def get_ticker_db(self, symbol: str):
+    async def get_ticker_db(self, symbol: str) -> TickerBase:
         query = '''
             SELECT price FROM tickers where symbol = (:symbol);
         '''
@@ -40,19 +40,15 @@ class TickerService:
 
         return TickerBase(symbol=symbol, price=price).model_dump() 
     
-    async def get_all_tickers_db(self):
+    async def get_all_tickers_db(self) -> List[TickerBase]:
         query = '''
             SELECT * FROM tickers;
         '''
 
-        tickers = await self.db.fetch_all(query=query)
-        tickers_resp = []
-        for ticker in tickers:
-            tickers_resp.append(TickerBase(symbol=ticker["symbol"], price=ticker["price"]).model_dump() )
-
-        return tickers_resp
+        tickers = await self.db.fetch_all(query=query) 
+        return [TickerBase(symbol=ticker["symbol"], price=ticker["price"]).model_dump() for ticker in tickers]
         
-    async def save_redis(self, tickers):
+    async def save_redis(self, tickers: List[TickerBase]):
         try:
             await self.redis_db.set("tickers", pickle.dumps(tickers))
         except Exception as e:
@@ -70,7 +66,7 @@ class TickerService:
 
         if not ticker:
             raise TickerNotFound
-
+        
         return TickerBase(symbol=ticker["symbol"], price=ticker["price"]).model_dump()
     
     async def get_all_tickers_redis(self: str) -> List[TickerBase]:
@@ -78,10 +74,10 @@ class TickerService:
 
         if not tickers:
             raise TickerNotFound
-        
+                
         return [TickerBase(symbol=ticker["symbol"], price=ticker["price"]).model_dump() for ticker in tickers]
 
-    async def get_ticker(self, symbol: str):
+    async def get_ticker(self, symbol: str) -> TickerBase:
         try: 
             return await self.get_ticker_redis(symbol)
         except TickerNotFound:
@@ -89,7 +85,7 @@ class TickerService:
         except Exception as e:
             TickerServiceException(e)
         
-    async def get_all_tickers(self):
+    async def get_all_tickers(self) -> List[TickerBase]:
         try: 
             return await self.get_all_tickers_redis()
         except TickerNotFound:

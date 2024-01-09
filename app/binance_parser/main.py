@@ -1,31 +1,30 @@
 import asyncio
 import json
-import logging
-import pickle
 from typing import List
 import uuid
-import aioredis
-from databases import Database
+from containers.base import Container
 from exceptions.base import BinanceParserException
 from schemas.tickers import TickerBase, TickerResponse
 from services.tickers import TickerService
 import websockets
+from dependency_injector.wiring import Provide, inject
 
 class BinanceParser:
-    def __init__(self, url: str, timeout: int, db: Database, redis_db: aioredis.Redis):
+
+    def __init__(self, url: str, timeout: int):
         self.url = url
         self.timeout = timeout
-        self.ticker_service: TickerService = TickerService(db=db, redis_db=redis_db)
 
     def transform_response(self, response: TickerResponse) -> List[TickerBase]:
         return [ticker for ticker in response["result"]]
 
-    async def save_to_db(self, data: List[TickerBase]):
+    @inject
+    async def save_to_db(self, data: List[TickerBase], ticker_service: TickerService = Provide[Container.ticker_service]):
         for ticker in data:
-            await self.ticker_service.save_db(ticker)
+            await ticker_service.save_db(ticker)
 
-    async def save_to_redis(self, data: List[TickerBase]):
-        await self.ticker_service.save_redis(data)
+    async def save_to_redis(self, data: List[TickerBase], ticker_service: TickerService = Provide[Container.ticker_service]):
+        await ticker_service.save_redis(data)
 
     async def listen(self):
         async with websockets.connect(self.url) as websocket:
@@ -38,11 +37,12 @@ class BinanceParser:
                 try:
                     await websocket.send(json.dumps(sub_request))                
                     response: TickerResponse = json.loads(await websocket.recv())
+
+                    data = self.transform_response(response)
+                    await self.save_to_db(data)
+                    await self.save_to_redis(data)
+
                 except Exception as e:
                     BinanceParserException(e)
-
-                data = self.transform_response(response)
-                await self.save_to_db(data)
-                await self.save_to_redis(data)
 
                 await asyncio.sleep(self.timeout)

@@ -1,11 +1,11 @@
 
 from typing import AsyncIterator
-import aiopg
-from config import DATABASE_URL, POSTGRES_DSN
 from databases import Database
 
-
-async def get_db() -> Database:
-    db = Database(DATABASE_URL)
+async def get_db(database_url: str) -> AsyncIterator[Database]:
+    db = Database(database_url)
     await db.connect()
-    return db
+    try:
+        yield db
+    finally:
+        await db.disconnect()
